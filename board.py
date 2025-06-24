@@ -351,6 +351,10 @@ class GameBoard:
         """
         Helper function to restore board state to given state representation.
         """
+        for r,c in self._board.fence_center_grid.argwhere():
+            self._board._place_or_remove_fence(r, c, 'h', place=False)
+            self._board._place_or_remove_fence(r, c, 'v', place=False)
+            
         # Clear everything
         self._board.fence_center_grid[:, :] = False
         self._board.horizontal_fence_grid[:, :] = False
