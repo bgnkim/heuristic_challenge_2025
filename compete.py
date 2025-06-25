@@ -21,6 +21,7 @@ import psutil as pu
 # Function for loading your agents
 from agents.load import get_all_agents
 from board import GameBoard, InvalidFence, InvalidMove
+from action import Action
 
 #: The number of games to run the evaluation
 GAMES = 10
@@ -154,7 +155,9 @@ if __name__ == '__main__':
                     start_mem[side] = 0
 
             # Run the game (white first)
+            turns = 0
             while not board.is_game_end():
+                turns += 1
                 side = board.current_player()
                 other_side = 'white' if side == 'black' else 'black'
                 state = board.get_state()
@@ -166,6 +169,10 @@ if __name__ == '__main__':
                     if type(result) is str:  # This indicates an error
                         winner_count.append(player_name[other_side])
                         _info(f'Error in player {side} [{player_name[side]}]: {result}')
+                        break
+                    if not isinstance(result, Action):
+                        winner_count.append(player_name[other_side])
+                        _info(f'Invalid action returned by player {side} [{player_name[side]}]: {result}')
                         break
 
                     # Check memory usage
@@ -181,7 +188,10 @@ if __name__ == '__main__':
                                      f'{usage - start_mem[side]}MB')
                         break
 
-                    board.simulate_action(state, result)
+                    state = board.simulate_action(state, result)
+                    # Reset state to check if the action is valid
+                    board.set_to_state(state, is_initial=True)
+
                     _info(f'Player {side} [{player_name[side]}] do action {result}.')
                 except Empty:
                     # Timeout happened
@@ -192,6 +202,16 @@ if __name__ == '__main__':
                     # Invalid action
                     winner_count.append(player_name[other_side])
                     _info(f'Invalid action returned by player {side} [{player_name[side]}]!')
+                    break
+                except Exception:
+                    # Invalid action
+                    winner_count.append(player_name[other_side])
+                    _info(f'Exception occurred by player {side} [{player_name[side]}]!')
+                    _info(format_exc())
+                    break
+                
+                if turns > 5000:
+                    _info(f'Game is too long! Treat this game as a tie.')
                     break
             else:
                 winner_count.append(player_name[side])
